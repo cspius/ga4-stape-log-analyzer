@@ -11,14 +11,14 @@ def extract_ga4_params(url):
 def parse_pr1_data(pr_value):
     if pd.isna(pr_value) or not isinstance(pr_value, str):
         return {}
-    
+
     parts = pr_value.split("~")
     parsed_data = {}
 
     for i in range(0, len(parts) - 1, 2):
-        key = parts[i]  # 2-character key (e.g., k0, v0, c4, etc.)
+        key = parts[i]  # Extract key (e.g., "k0", "v0", "c4", etc.)
         value = parts[i + 1]  # Corresponding value
-        parsed_data[f"pr1_{key}"] = value.strip()  # Store in dict with column prefix
+        parsed_data[f"pr1_{key}"] = value.strip()  # Ensure correct naming format
 
     return parsed_data
 
@@ -36,22 +36,25 @@ if uploaded_file:
         ga4_params_list = [extract_ga4_params(url) for url in df["Request Url"]]
         ga4_params_df = pd.DataFrame(ga4_params_list)
 
+        # Merge extracted GA4 parameters with original data
+        df = pd.concat([df, ga4_params_df], axis=1)
+
         # Extract and structure `pr1` item data
-        if "pr1" in ga4_params_df.columns:
-            structured_pr1_data = ga4_params_df["pr1"].apply(parse_pr1_data)
+        if "pr1" in df.columns:
+            structured_pr1_data = df["pr1"].apply(parse_pr1_data)
             structured_pr1_df = pd.json_normalize(structured_pr1_data)
-            ga4_params_df = pd.concat([ga4_params_df, structured_pr1_df], axis=1)
+            df = pd.concat([df, structured_pr1_df], axis=1)  # Merge new columns
 
             # Drop raw "pr1" column after extraction
-            ga4_params_df = ga4_params_df.drop(columns=["pr1"])
+            df = df.drop(columns=["pr1"])
 
         # Display structured GA4 data with extracted pr1 columns
         st.write("### Cleaned GA4 Data with Structured pr1 Parameters")
-        st.dataframe(ga4_params_df)
+        st.dataframe(df)
 
         # Save structured data to CSV
         output_csv = "ga4_cleaned_data.csv"
-        ga4_params_df.to_csv(output_csv, index=False)
+        df.to_csv(output_csv, index=False)
 
         # Download button
         with open(output_csv, "rb") as f:
