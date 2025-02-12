@@ -1,15 +1,10 @@
 import streamlit as st
 import pandas as pd
-import re  # Regular expressions
-import urllib.parse  # For URL decoding
-from urllib.parse import urlparse, parse_qs  # GA4 parameter extraction
+import re
+import urllib.parse
+from urllib.parse import urlparse, parse_qs
 
-# Function to extract GA4 parameters from Request URL
-def extract_ga4_params(url):
-    query_params = parse_qs(urlparse(url).query)
-    return {key: ', '.join(value) for key, value in query_params.items()}
-
-# Function to correctly parse pr1 structured data into separate columns
+# Function to parse multiple prX structured data into separate columns
 def parse_pr_data(pr_values):
     parsed_data = {}
 
@@ -32,6 +27,11 @@ def parse_pr_data(pr_values):
 
     return parsed_data
 
+# Function to extract GA4 parameters from Request URL
+def extract_ga4_params(url):
+    query_params = parse_qs(urlparse(url).query)
+    return {key: ', '.join(value) for key, value in query_params.items()}
+
 # Streamlit UI
 st.title("GA4 Log Analyzer")
 
@@ -50,17 +50,22 @@ if uploaded_file:
         # Drop the original "Request Url" column (reducing file size)
         df = ga4_params_df.copy()
 
-        # Extract and structure pr1 item data
-        if "pr1" in df.columns:
-            structured_pr1_data = df["pr1"].apply(parse_pr1_data)
-            structured_pr1_df = pd.json_normalize(structured_pr1_data)
-            df = pd.concat([df, structured_pr1_df], axis=1)  # Merge new columns
+        # Find all columns that start with "pr" (pr1, pr2, pr3...)
+        pr_columns = [col for col in df.columns if col.startswith("pr")]
 
-            # Drop raw "pr1" column after extraction
-            df = df.drop(columns=["pr1"])
+        # Pass all prX columns to parse_pr_data() dynamically
+        if pr_columns:
+            structured_pr_data = df[pr_columns].apply(lambda row: parse_pr_data(row.to_dict()), axis=1)
 
-        # Display structured GA4 data with extracted pr1 columns
-        st.write("### Cleaned GA4 Data with Structured pr1 Parameters")
+            # Convert the parsed dictionary into a DataFrame and merge it back
+            structured_pr_df = pd.json_normalize(structured_pr_data)
+            df = pd.concat([df, structured_pr_df], axis=1)
+
+            # Drop the original prX columns to keep the file clean
+            df = df.drop(columns=pr_columns)
+
+        # Display structured GA4 data with extracted prX columns
+        st.write("### Cleaned GA4 Data with Structured prX Parameters")
         st.dataframe(df)
 
         # Save structured data to CSV
