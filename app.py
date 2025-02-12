@@ -19,8 +19,8 @@ def parse_pr1_data(pr_value):
         key = parts[i].strip()  # Extract key (e.g., "k0", "v0", "c4", etc.)
         value = parts[i + 1].strip()  # Corresponding value
 
-        # Ensure proper formatting with "pr1_" prefix
-        if re.match(r'^[a-zA-Z]+\d*$', key):  # Ensures key is valid
+        # Ensure the key is valid and not empty before applying regex
+        if key and re.match(r'^[a-zA-Z]+\d*$', key):  
             parsed_data[f"pr1_{key}"] = value
 
     return parsed_data
