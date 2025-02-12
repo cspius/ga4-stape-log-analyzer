@@ -20,10 +20,10 @@ def parse_pr1_data(pr_value):
         key = str(parts[i]).strip()  # Ensure key is a string
         value = str(parts[i + 1]).strip()  # Ensure value is a string
 
-        # Extract only the key part, removing numbers from identifier keys like "id0212327"
-        key_cleaned = re.sub(r'\d+', '', key)  
+        # Extract only the key part, removing trailing numbers from keys like "id0212327"
+        key_cleaned = re.sub(r'\d+$', '', key)  
 
-        # Store in dictionary with "pr1_" prefix
+        # Store in dictionary with "pr1_" prefix, ensuring clean column names
         if key_cleaned and re.match(r'^[a-zA-Z]+$', key_cleaned):  
             parsed_data[f"pr1_{key_cleaned}"] = value
 
@@ -40,14 +40,12 @@ if uploaded_file:
 
     # Ensure only "Request Url" column is used
     if "Request Url" in df.columns:
-        df = df[["Request Url"]]
-
-        # Extract GA4 parameters
+        # Extract GA4 parameters and remove "Request Url" immediately after extraction
         ga4_params_list = [extract_ga4_params(url) for url in df["Request Url"]]
         ga4_params_df = pd.DataFrame(ga4_params_list)
 
-        # Merge extracted GA4 parameters with the dataset
-        df = pd.concat([df, ga4_params_df], axis=1)
+        # Drop the original "Request Url" column (reducing file size)
+        df = ga4_params_df.copy()
 
         # Extract and structure pr1 item data
         if "pr1" in df.columns:
