@@ -7,23 +7,18 @@ def extract_ga4_params(url):
     query_params = parse_qs(urlparse(url).query)
     return {key: ', '.join(value) for key, value in query_params.items()}
 
-# Function to parse GA4 item data from "pr1", "pr2", etc.
-def parse_item_data(pr_value):
-    if pd.isna(pr_value):
+# Function to parse structured GA4 item parameters from pr1
+def parse_pr1_data(pr_value):
+    if pd.isna(pr_value) or not isinstance(pr_value, str):
         return {}
+    
     parts = pr_value.split("~")
     parsed_data = {}
-    
-    key = None
-    for part in parts:
-        if part.startswith("k"):
-            key = part[1:]  # Remove 'k' prefix (e.g., k0item_tax_rate -> item_tax_rate)
-        elif part.startswith("v") and key:
-            parsed_data[key] = part[1:]  # Remove 'v' prefix (value assignment)
-            key = None
-        elif key:
-            parsed_data[key] = part  # Assign remaining values
-            key = None
+
+    for i in range(0, len(parts) - 1, 2):
+        key = parts[i]  # 2-character key (e.g., k0, v0, c4, etc.)
+        value = parts[i + 1]  # Corresponding value
+        parsed_data[f"pr1_{key}"] = value.strip()  # Store in dict with column prefix
 
     return parsed_data
 
@@ -41,24 +36,25 @@ if uploaded_file:
         ga4_params_list = [extract_ga4_params(url) for url in df["Request Url"]]
         ga4_params_df = pd.DataFrame(ga4_params_list)
 
-        # Extract item data (from pr1, pr2, etc.)
-        item_columns = [col for col in ga4_params_df.columns if col.startswith("pr")]
-        if item_columns:
-            structured_item_data = ga4_params_df[item_columns].applymap(parse_item_data)
-            structured_item_df = pd.json_normalize(structured_item_data.stack().tolist())
+        # Extract and structure `pr1` item data
+        if "pr1" in ga4_params_df.columns:
+            structured_pr1_data = ga4_params_df["pr1"].apply(parse_pr1_data)
+            structured_pr1_df = pd.json_normalize(structured_pr1_data)
+            ga4_params_df = pd.concat([ga4_params_df, structured_pr1_df], axis=1)
 
-            # Display structured item data
-            st.write("### Extracted GA4 Item Data")
-            st.dataframe(structured_item_df)
+            # Drop raw "pr1" column after extraction
+            ga4_params_df = ga4_params_df.drop(columns=["pr1"])
 
-            # Save structured data to CSV
-            output_csv = "ga4_item_data_cleaned.csv"
-            structured_item_df.to_csv(output_csv, index=False)
+        # Display structured GA4 data with extracted pr1 columns
+        st.write("### Cleaned GA4 Data with Structured pr1 Parameters")
+        st.dataframe(ga4_params_df)
 
-            # Download button
-            with open(output_csv, "rb") as f:
-                st.download_button("Download Processed Item Data", f, file_name="ga4_item_data_cleaned.csv", mime="text/csv")
-        else:
-            st.warning("No item data (pr1, pr2, etc.) found in the uploaded file.")
+        # Save structured data to CSV
+        output_csv = "ga4_cleaned_data.csv"
+        ga4_params_df.to_csv(output_csv, index=False)
+
+        # Download button
+        with open(output_csv, "rb") as f:
+            st.download_button("Download Cleaned GA4 Data", f, file_name="ga4_cleaned_data.csv", mime="text/csv")
     else:
         st.error("The file does not contain a 'Request Url' column!")
