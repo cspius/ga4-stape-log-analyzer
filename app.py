@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import re
 from urllib.parse import urlparse, parse_qs
 
 # Function to extract GA4 parameters from URL
@@ -9,6 +8,7 @@ def extract_ga4_params(url):
     return {key: ', '.join(value) for key, value in query_params.items()}
 
 # Function to parse structured GA4 item parameters from pr1
+import re
 def parse_pr1_data(pr_value):
     if pd.isna(pr_value) or not isinstance(pr_value, str):
         return {}
