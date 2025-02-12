@@ -16,9 +16,12 @@ def parse_pr1_data(pr_value):
     parsed_data = {}
 
     for i in range(0, len(parts) - 1, 2):
-        key = parts[i]  # Extract key (e.g., "k0", "v0", "c4", etc.)
-        value = parts[i + 1]  # Corresponding value
-        parsed_data[f"pr1_{key}"] = value.strip()  # Ensure correct naming format
+        key = parts[i].strip()  # Extract key (e.g., "k0", "v0", "c4", etc.)
+        value = parts[i + 1].strip()  # Corresponding value
+
+        # Ensure proper formatting with "pr1_" prefix
+        if re.match(r'^[a-zA-Z]+\d*$', key):  # Ensures key is valid
+            parsed_data[f"pr1_{key}"] = value
 
     return parsed_data
 
