@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import re
 from urllib.parse import urlparse, parse_qs
 
 # Function to extract GA4 parameters from URL
