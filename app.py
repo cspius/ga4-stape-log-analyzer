@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 import urllib.parse
+import numpy as np
 from urllib.parse import urlparse, parse_qs
 
 # Function to parse multiple prX structured data into separate columns
@@ -23,7 +24,8 @@ def parse_pr_data(pr_values):
             key = part[:2]  # First 2 characters as the key
             value = part[2:].strip()  # Everything after is the value
 
-            parsed_data[f"{prefix}{key}"] = urllib.parse.unquote(value)  # URL-decode
+            # Ensure proper mapping of extracted values
+            parsed_data[f"{prefix}{key}"] = urllib.parse.unquote(value) if value else ""
 
     return parsed_data
 
@@ -53,7 +55,7 @@ if uploaded_file:
         # Find all columns that start with "pr" (pr1, pr2, pr3...)
         pr_columns = [col for col in df.columns if col.startswith("pr")]
 
-        # Pass all prX columns to parse_pr_data() dynamically
+        # Apply the parsing function dynamically to all prX columns
         if pr_columns:
             structured_pr_data = df[pr_columns].apply(lambda row: parse_pr_data(row.to_dict()), axis=1)
 
@@ -63,6 +65,9 @@ if uploaded_file:
 
             # Drop the original prX columns to keep the file clean
             df = df.drop(columns=pr_columns)
+
+        # Replace NaN with empty strings for better output consistency
+        df = df.replace({np.nan: ""})
 
         # Display structured GA4 data with extracted prX columns
         st.write("### Cleaned GA4 Data with Structured prX Parameters")
