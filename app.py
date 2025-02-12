@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-import re
-from urllib.parse import urlparse, parse_qs
+import re  # Regular expressions
+import urllib.parse  # For URL decoding
+from urllib.parse import urlparse, parse_qs  # GA4 parameter extraction
 
 # Function to extract GA4 parameters from Request URL
 def extract_ga4_params(url):
@@ -16,16 +17,22 @@ def parse_pr1_data(pr_value):
     parts = pr_value.split("~")
     parsed_data = {}
 
-    for i in range(0, len(parts) - 1, 2):
-        key = str(parts[i]).strip()  # Ensure key is a string
-        value = str(parts[i + 1]).strip()  # Ensure value is a string
+    # Extract `prX.XX` value if present
+    if parts[0].startswith("pr") and "." in parts[0][2:]:
+        parsed_data["pr1_pr"] = parts[0][2:]  # Extract value after "pr"
+        parts = parts[1:]  # Remove from list
+    else:
+        parsed_data["pr1_pr"] = ""  # Fallback if missing
 
-        # Extract only the key part, removing trailing numbers from keys like "id0212327"
-        key_cleaned = re.sub(r'\d+$', '', key)  
-
-        # Store in dictionary with "pr1_" prefix, ensuring clean column names
-        if key_cleaned and re.match(r'^[a-zA-Z]+$', key_cleaned):  
-            parsed_data[f"pr1_{key_cleaned}"] = value
+    # Loop through remaining key-value pairs
+    for part in parts:
+        # Extract kX, vX, and standard parameters
+        match = re.match(r"^([a-zA-Z]+\d*)(.*)$", part)
+        if match:
+            key, value = match.groups()
+            parsed_data[f"pr1_{key}"] = urllib.parse.unquote(value.strip())  # URL-decode
+        else:
+            parsed_data[f"pr1_{part}"] = ""  # Handle standalone keys
 
     return parsed_data
 
