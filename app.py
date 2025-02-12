@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
+import re
 from urllib.parse import urlparse, parse_qs
 
-# Function to extract GA4 parameters from URL
+# Function to extract GA4 parameters from Request URL
 def extract_ga4_params(url):
     query_params = parse_qs(urlparse(url).query)
     return {key: ', '.join(value) for key, value in query_params.items()}
 
-# Function to parse structured GA4 item parameters from pr1
-import re
+# Function to correctly parse pr1 structured data into separate columns
 def parse_pr1_data(pr_value):
     if pd.isna(pr_value) or not isinstance(pr_value, str):
         return {}
@@ -17,12 +17,15 @@ def parse_pr1_data(pr_value):
     parsed_data = {}
 
     for i in range(0, len(parts) - 1, 2):
-        key = str(parts[i]).strip()  # Ensure key is always a string and remove extra spaces
-        value = str(parts[i + 1]).strip()  # Ensure value is always a string
+        key = str(parts[i]).strip()  # Ensure key is a string
+        value = str(parts[i + 1]).strip()  # Ensure value is a string
 
-        # Validate that the key is alphanumeric and contains at least one letter
-        if key and re.match(r'^[a-zA-Z]+\d*$', key):  
-            parsed_data[f"pr1_{key}"] = value
+        # Extract only the key part, removing numbers from identifier keys like "id0212327"
+        key_cleaned = re.sub(r'\d+', '', key)  
+
+        # Store in dictionary with "pr1_" prefix
+        if key_cleaned and re.match(r'^[a-zA-Z]+$', key_cleaned):  
+            parsed_data[f"pr1_{key_cleaned}"] = value
 
     return parsed_data
 
@@ -35,15 +38,18 @@ uploaded_file = st.file_uploader("Lade dein Log-File hoch (CSV)", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
+    # Ensure only "Request Url" column is used
     if "Request Url" in df.columns:
+        df = df[["Request Url"]]
+
         # Extract GA4 parameters
         ga4_params_list = [extract_ga4_params(url) for url in df["Request Url"]]
         ga4_params_df = pd.DataFrame(ga4_params_list)
 
-        # Merge extracted GA4 parameters with original data
+        # Merge extracted GA4 parameters with the dataset
         df = pd.concat([df, ga4_params_df], axis=1)
 
-        # Extract and structure `pr1` item data
+        # Extract and structure pr1 item data
         if "pr1" in df.columns:
             structured_pr1_data = df["pr1"].apply(parse_pr1_data)
             structured_pr1_df = pd.json_normalize(structured_pr1_data)
