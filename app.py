@@ -16,11 +16,11 @@ def parse_pr1_data(pr_value):
     parsed_data = {}
 
     for i in range(0, len(parts) - 1, 2):
-        key = str(parts[i]).strip()  # Ensure key is always a string
+        key = str(parts[i]).strip()  # Ensure key is always a string and remove extra spaces
         value = str(parts[i + 1]).strip()  # Ensure value is always a string
 
-        # Ensure the key is valid before applying regex
-        if key and isinstance(key, str) and re.match(r'^[a-zA-Z]+\d*$', key):  
+        # Validate that the key is alphanumeric and contains at least one letter
+        if key and re.match(r'^[a-zA-Z]+\d*$', key):  
             parsed_data[f"pr1_{key}"] = value
 
     return parsed_data
