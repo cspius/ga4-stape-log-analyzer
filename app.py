@@ -10,21 +10,25 @@ def extract_ga4_params(url):
     return {key: ', '.join(value) for key, value in query_params.items()}
 
 # Function to correctly parse pr1 structured data into separate columns
-def parse_pr1_data(pr_value):
-    if pd.isna(pr_value) or not isinstance(pr_value, str):
-        return {}
-
-    parts = pr_value.split("~")  # Split by delimiter
+def parse_pr_data(pr_values):
     parsed_data = {}
 
-    for part in parts:
-        if len(part) < 3:  # Ignore unexpected short data
-            continue
+    for pr_key, pr_value in pr_values.items():
+        if pd.isna(pr_value) or not isinstance(pr_value, str):
+            continue  # Skip if empty
 
-        key = part[:2]  # First 2 characters as the key
-        value = part[2:].strip()  # Everything after is the value
+        parts = pr_value.split("~")  # Split by delimiter
+        product_number = pr_key[2:]  # Extract the product number (e.g., "1" from "pr1")
+        prefix = f"p{product_number}_"  # Use "p1_", "p2_", etc.
 
-        parsed_data[f"pr1_{key}"] = urllib.parse.unquote(value)  # URL-decode
+        for part in parts:
+            if len(part) < 3:  # Ignore unexpected short data
+                continue
+
+            key = part[:2]  # First 2 characters as the key
+            value = part[2:].strip()  # Everything after is the value
+
+            parsed_data[f"{prefix}{key}"] = urllib.parse.unquote(value)  # URL-decode
 
     return parsed_data
 
