@@ -14,25 +14,17 @@ def parse_pr1_data(pr_value):
     if pd.isna(pr_value) or not isinstance(pr_value, str):
         return {}
 
-    parts = pr_value.split("~")
+    parts = pr_value.split("~")  # Split by delimiter
     parsed_data = {}
 
-    # Extract `prX.XX` value if present
-    if parts[0].startswith("pr") and "." in parts[0][2:]:
-        parsed_data["pr1_pr"] = parts[0][2:]  # Extract value after "pr"
-        parts = parts[1:]  # Remove from list
-    else:
-        parsed_data["pr1_pr"] = ""  # Fallback if missing
-
-    # Loop through remaining key-value pairs
     for part in parts:
-        # Extract kX, vX, and standard parameters
-        match = re.match(r"^([a-zA-Z]+\d*)(.*)$", part)
-        if match:
-            key, value = match.groups()
-            parsed_data[f"pr1_{key}"] = urllib.parse.unquote(value.strip())  # URL-decode
-        else:
-            parsed_data[f"pr1_{part}"] = ""  # Handle standalone keys
+        if len(part) < 3:  # Ignore unexpected short data
+            continue
+
+        key = part[:2]  # First 2 characters as the key
+        value = part[2:].strip()  # Everything after is the value
+
+        parsed_data[f"pr1_{key}"] = urllib.parse.unquote(value)  # URL-decode
 
     return parsed_data
 
